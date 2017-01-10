@@ -14,7 +14,6 @@ import com.mongodb.DBObject;
 import com.mongodb.DBCursor;
 import java.util.ArrayList;
 import java.util.List;
-
 import twitter4j.HashtagEntity;
 import twitter4j.Status;
 import twitter4j.TwitterException;
@@ -27,229 +26,156 @@ import twitter4j.UserMentionEntity;
  * @author aristeidis
  */
 public class SaveTweets {
-    static public void saveConnection(String date,String name,BasicDBObject doc,int flag,int count,DBCollection ConnectionCollection){
-      BasicDBObject connectionDocument = new BasicDBObject("Connection",count);
-                        connectionDocument.append("user", name);
-                        connectionDocument.append("timestamp", date);
-              if(flag == 1) connectionDocument.append("hashtag", doc);
-              else if(flag == 2) connectionDocument.append("URL",doc);
-                  else if(flag == 3) connectionDocument.append("mentioned_user", doc);
-                      else if(flag == 4) connectionDocument.append("retweet_tweet", doc);
-            ConnectionCollection.insert(connectionDocument);  
-            System.out.println("C" + connectionDocument);
-            
-        
+
+    static public void saveConnection(String date, String name, BasicDBObject doc, int flag, int count, DBCollection ConnectionCollection) {
+        BasicDBObject connectionDocument = new BasicDBObject("Connection", count);
+        connectionDocument.append("user", name);
+        connectionDocument.append("timestamp", date);
+        switch (flag) {
+            case 1:
+                connectionDocument.append("hashtag", doc);
+                break;
+            case 2:
+                connectionDocument.append("URL", doc);
+                break;
+            case 3:
+                connectionDocument.append("mentioned_user", doc);
+                break;
+            case 4:
+                connectionDocument.append("retweet_tweet", doc);
+                break;
+            default:
+                break;
+        }
+        ConnectionCollection.insert(connectionDocument);
     }
-    static public void saveTweets(DB db,twitter4j.Twitter twitter) throws TwitterException{
+
+    static public void saveTweets(DB db, twitter4j.Twitter twitter) throws TwitterException {
         DBCollection collection = db.getCollection("collection");
         DBCollection savedCollection = db.getCollection("savedCollection");
-        DBCollection URLSCollection = db.getCollection("URLS");
-        DBCollection HashtagsCollection = db.getCollection("HashtagsCollection");
-        DBCollection MentionedUsersCollection = db.getCollection("MentionedUsersCollection");
-        DBCollection TweetsCollection = db.getCollection("TweetsCollection");
         DBCollection ConnectionCollection = db.getCollection(" ConnectionCollection");
         BasicDBObject document0 = new BasicDBObject();
         savedCollection.remove(document0);
-        HashtagsCollection.remove(document0);
-        MentionedUsersCollection.remove(document0);
-        TweetsCollection.remove(document0);
         ConnectionCollection.remove(document0);
-        Status savedTweet ;
-        
+        Status savedTweet;
+
         //Read Tweets from Database
         System.out.println("Saved tweets: ");
-         DBCursor cursor = collection.find();
-          BasicDBObject hashtagsDocument = new BasicDBObject("Hashtags",1);
-          BasicDBObject usersmainDocument = new BasicDBObject("Users",1);
-          List<BasicDBObject> allHashtags = new ArrayList<>();
-          List<BasicDBObject> allUsers = new ArrayList<>();
-          int count=1;
-         while (cursor.hasNext()) {
-             
-             
-             DBObject obj = cursor.next(); 
-             savedTweet = TwitterObjectFactory.createStatus(obj.toString());
-             
-                        String name = savedTweet.getUser().getScreenName();  
-                        String date = savedTweet.getCreatedAt().toString();
-          System.out.println("@" + savedTweet.getUser().getScreenName() + "---------- "+ savedTweet.getText());
-          
-                      HashtagEntity[] hashtagsEntities =savedTweet.getHashtagEntities();
-                      for (int i = 0; i < hashtagsEntities.length; i++) {
-                       BasicDBObject document1 = new BasicDBObject("hashtag",hashtagsEntities[i].getText());
-                       
-                         DBCursor cursor1 = HashtagsCollection.find(document1);
-                         if(!cursor1.hasNext()) {
-                             //BasicDBObject d =(BasicDBObject) cursor1.next();
-                             HashtagsCollection.insert(document1);
-                            // System.out.println(document1);
-                            // System.out.println( "Not exist");
-                         } 
-                         else{
-                            //System.out.println( "exist");
-                         }
-                         saveConnection(date,name,document1,1, count,ConnectionCollection);
-                         count++;
-                      }
-                      
-                      URLEntity[] urlEntities = savedTweet.getURLEntities();
-                      if(savedTweet.getURLEntities().length>0){
-                         for (int i = 0; i < savedTweet.getURLEntities().length; i++) {
-                           if(urlEntities[i].getStart()<urlEntities[i].getEnd()){
-                           BasicDBObject document1 = new BasicDBObject("url",urlEntities[i].getURL());
-                           DBCursor cursor1 = HashtagsCollection.find(document1);
-                           if(!cursor1.hasNext()) {
-                             String completeURL = urlEntities[i].getExpandedURL();
-                             document1.append("completeURL", completeURL);
-                             URLSCollection.insert(document1);
-                             //System.out.println(document1);
-                            // System.out.println( "Not exist");
-                           }
-                           else{
-                               // System.out.println( "exist");
-                           }
-                           saveConnection(date,name,document1,2, count,ConnectionCollection);
-                           count++;
-                           }
-                         }
-                      }
-                      
-                      UserMentionEntity[] mentionEntities = savedTweet.getUserMentionEntities();
-                      for (int i = 0; i < mentionEntities.length; i++) {
-                         BasicDBObject document2 = new BasicDBObject("user",mentionEntities[i].getText());
-                           DBCursor cursor2 = MentionedUsersCollection.find(document2);
-                           if(!cursor2.hasNext()) {
-                             URLSCollection.insert(document2);
-                             //System.out.println(document2);
-                            // System.out.println( "Not exist");
-                           }
-                           else{
-                                //System.out.println(document2);
-                                //System.out.println( "exist");
-                           }
-                           saveConnection(date,name,document2,3, count,ConnectionCollection);
-                           count++;
-                         }
-                         
-                          String tweetText;
-                          if(savedTweet.isRetweet()){
-                              tweetText = savedTweet.getRetweetedStatus().getText();
-                          }else{
-                              tweetText = savedTweet.getText();
-                          }
-                          
-                          BasicDBObject document2 = new BasicDBObject("tweet",tweetText);
-                           DBCursor cursor2 = TweetsCollection.find(document2);
-                           if(!cursor2.hasNext()) {
-                               TweetsCollection.insert(document2);
-                           }
-                          if(savedTweet.isRetweet())
-                          saveConnection(date,name,document2,4, count,ConnectionCollection);
-                          count++;
-                           
-                           /*
-                        BasicDBObject connectionDocument = new BasicDBObject("Connection",count)
-                        .append("user", name)
-                        .append("timestamp", date)
-                        .append("tweet", document2)
-                                ;
-                        ConnectionCollection.insert(connectionDocument);
-                        count++;*/
-         }   
-            
-                    /* 
-                     String name = savedTweet.getUser().getScreenName();
-                     if(!allUsers.contains(new BasicDBObject("user",name)))
-                        allUsers.add(new BasicDBObject("user",name));
-                     
-            
-                     String tweetText = savedTweet.getText();
-                     
-                      HashtagEntity[] hashtagsEntities =savedTweet.getHashtagEntities();
-                      BasicDBList hashtags = new BasicDBList();
-                      List<BasicDBObject> milestones = new ArrayList<>();
-                      for (int i = 0; i < hashtagsEntities.length; i++) {
-                        hashtags.add(new BasicDBObject("hashtag",hashtagsEntities[i].getText()));
-                        milestones.add(new BasicDBObject(hashtagsEntities[i].getText().toString(),hashtagsEntities[i].getText()));
-                        if(!allHashtags.contains(new BasicDBObject("hashtag",hashtagsEntities[i].getText())))
-                        allHashtags.add(new BasicDBObject("hashtag",hashtagsEntities[i].getText()));
-                       // System.out.println("Hashtag: " + hashtagsEntities[i].getText());
-                       
-                      }
-                      
-                      int flag =1;
-                      BasicDBList mentions = new BasicDBList();
-                     UserMentionEntity[] mentionEntities = savedTweet.getUserMentionEntities();
-                     if(savedTweet.isRetweet()){
-                         for (int i = 1; i < mentionEntities.length; i++) {
-                        mentions.add(new BasicDBObject("mention",mentionEntities[i].getText()));
-                      //  System.out.println("Mention: " + mentionEntities[i].getText());
-                       
-                      }
-                     }else{
-                         for (int i = 0; i < mentionEntities.length; i++) {
-                        mentions.add(new BasicDBObject("mention",mentionEntities[i].getText()));
-                      //  System.out.println("Mention: " + mentionEntities[i].getText());
-                       
-                      }
-                     }
-                     BasicDBList shortURLS = new BasicDBList();
-                      BasicDBList wholeURLS = new BasicDBList();
-                      URLEntity[] urlEntities = savedTweet.getURLEntities();
-                       for (int i = 0; i < savedTweet.getURLEntities().length; i++) {
-                        shortURLS.add(new BasicDBObject("shortURL",urlEntities[i].getURL()));
-                          wholeURLS.add(new BasicDBObject("wholeURL",urlEntities[i].getDisplayURL()));
-                       //   System.out.println("shortURL: " + urlEntities[i].getURL());
-                       //   System.out.println("wholeURL: " + urlEntities[i].getDisplayURL());
-                       }
-                     
-                      
-                      String date = savedTweet.getCreatedAt().toString();
-                      //System.out.println("Date: " +date);
-                    
-                     Boolean rt=false;  
-                    if(savedTweet.isRetweet()){ 
-                        rt=true;
+        DBCursor cursor = collection.find();
+        List<String> allUsers = new ArrayList<>();
+        int count = 1;
+
+        while (cursor.hasNext()) {
+            DBObject obj = cursor.next();
+            savedTweet = TwitterObjectFactory.createStatus(obj.toString());
+
+            String name = savedTweet.getUser().getScreenName();
+            String date = savedTweet.getCreatedAt().toString();
+            boolean exist = false;
+
+            BasicDBObject document = new BasicDBObject("User", name);
+            BasicDBObject searchDocument = new BasicDBObject("User", name);
+            DBObject theObj = null;
+
+            if (!allUsers.contains(name)) {
+                allUsers.add(name);
+            } else {
+                exist = true;
+                DBCursor cursor2 = savedCollection.find(searchDocument);
+                if (cursor2.hasNext()) {
+                    theObj = cursor2.next();
+                }
+            }
+
+            BasicDBList allHashtags = new BasicDBList();
+            BasicDBList allURLS = new BasicDBList();
+            BasicDBList allmentionedUsers = new BasicDBList();
+            BasicDBList allTweets = new BasicDBList();
+
+            if (exist) {
+                allHashtags = (BasicDBList) theObj.get("Hashtags");
+            }
+            HashtagEntity[] hashtagsEntities = savedTweet.getHashtagEntities();
+            for (HashtagEntity hashtagsEntitie : hashtagsEntities) {
+                if (!allHashtags.contains(new BasicDBObject("hashtag", hashtagsEntitie.getText()))) {
+                    allHashtags.add(new BasicDBObject("hashtag", hashtagsEntitie.getText()));
+                }
+                saveConnection(date, name, new BasicDBObject("hashtag", hashtagsEntitie.getText()), 1, count, ConnectionCollection);
+                count++;
+            }
+            document.append("Hashtags", allHashtags);
+
+            if (exist) {
+                allURLS = (BasicDBList) theObj.get("Urls");
+            }
+            URLEntity[] urlEntities = savedTweet.getURLEntities();
+            if (savedTweet.getURLEntities().length > 0) {
+                for (int i = 0; i < savedTweet.getURLEntities().length; i++) {
+                    if (urlEntities[i].getStart() < urlEntities[i].getEnd()) {
+                        BasicDBObject document1 = new BasicDBObject("url", urlEntities[i].getURL());
+                        String completeURL = urlEntities[i].getExpandedURL();
+                        document1.append("completeURL", completeURL);
+                        if (!allURLS.contains(document1)) {
+                            allURLS.add(document1);
+                        }
+                        saveConnection(date, name, document1, 2, count, ConnectionCollection);
+                        count++;
                     }
-                    BasicDBObject document1 = new BasicDBObject("name",name);
-                        DBCursor cursor1 = savedCollection.find(document1);
-while(cursor1.hasNext()) {
-   
-    BasicDBObject document =(BasicDBObject) cursor1.next();
-     System.out.println(document);
-      System.out.println( "exist");
-   
-}    
-                     BasicDBObject document = new BasicDBObject("name",name)
-                     .append("tweetText",tweetText)
-                     .append("Hashtags",hashtags) 
-                     .append("ml",milestones) 
-                     .append("Mentions",mentions)
-                     .append("shortUrls",shortURLS)
-                     .append("wholeUrls",wholeURLS)
-                     .append("Date",date)
-                     .append("IsReTweet",rt)
-                     .append("tweet", obj.toString())
-                      ;
-                     savedCollection.insert(document);
-                     
-                     //System.out.println(savedCollection.find(document));
-                 
-                  //   System.out.println("paok2");
-         }
-         // savedCollection.insert(allHashtags);
-         // savedCollection.insert(allUsers);
-         // System.out.println(allHashtags.toString());
-        for(BasicDBObject h:allHashtags) {
-           // System.out.println(h.get("hashtag"));
-            // prints [Tommy, tiger]
+                }
+            }
+            document.append("Urls", allURLS);
+
+            if (exist) {
+                allmentionedUsers = (BasicDBList) theObj.get("Mentions");
+            }
+            UserMentionEntity[] mentionEntities = savedTweet.getUserMentionEntities();
+            for (UserMentionEntity mentionEntitie : mentionEntities) {
+                BasicDBObject document2 = new BasicDBObject("mentioned_user", mentionEntitie.getText());
+                if (!allmentionedUsers.contains(document2)) {
+                    allmentionedUsers.add(document2);
+                }
+                saveConnection(date, name, document2, 3, count, ConnectionCollection);
+                count++;
+            }
+            document.append("Mentions", allmentionedUsers);
+
+            if (exist) {
+                allTweets = (BasicDBList) theObj.get("Tweets");
+            }
+            String tweetText = " ";
+            if (savedTweet.isRetweet()) {
+                tweetText = savedTweet.getRetweetedStatus().getText();
+            } else {
+                tweetText = savedTweet.getText();
+            }
+            BasicDBObject document2 = new BasicDBObject("Tweet", tweetText);
+            if (!allTweets.contains(document2)) {
+                allTweets.add(document2);
+            }
+            saveConnection(date, name, document2, 4, count, ConnectionCollection);
+            count++;
+            document.append("Tweets", allTweets);
+
+            if (exist) {
+                savedCollection.remove(searchDocument);
+            }
+            savedCollection.insert(document);
         }
-        for(BasicDBObject u:allUsers) {
-           // System.out.println(u.get("user"));
-            // prints [Tommy, tiger]
+        /*
+        Read every Element Example
+        DBCursor cursor2 = savedCollection.find(searchDocument);
+        if (cursor2.hasNext()) {
+            theObj = cursor2.next();
+        //String l =  ( String) cursor2.one().get("exist").toString();
         }
-       //  System.out.println("Collected tweets :" + savedCollection.getCount()); 
-*/
+
+        BasicDBList list = new BasicDBList();
+        list = (BasicDBList) theObj.get("Hashtags");
+        BasicDBList l2 = new BasicDBList();
+        for (int i = 0; i < list.size(); i++) {
+            BasicDBObject bj = (BasicDBObject) list.get(i);
+            System.out.println(bj.getString("hashtag"));
+        }
+         */
     }
-    
 }
