@@ -33,25 +33,32 @@ import twitter4j.json.DataObjectFactory;
 public class CollectTweets {
     
     static public void collectTweets(DB db,ConfigurationBuilder cf1,twitter4j.Twitter twitter){
+        
+        
         TwitterStream twitterStream = new TwitterStreamFactory(cf1.build())
          .getInstance();
     
          DBCollection collection = db.getCollection("collection");
-         //BasicDBObject document0 = new BasicDBObject();
-       // collection.remove(document0);
+          DBCollection collection2 = db.getCollection("collection2");
+         BasicDBObject document0 = new BasicDBObject();
+        collection.remove(document0);
+        collection2.remove(document0);
         StatusListener listener = new StatusListener() {
+            
 
         @Override
         public void onStatus(Status status) {
+            if(collection2.getCount()==15000) System.exit(0);
             String json = DataObjectFactory.getRawJSON(status);
             DBObject doc = (DBObject)JSON.parse(json);
             try {
-                collection.insert(doc);
+                collection2.insert(doc);
             } catch (Exception e) {
                 System.out.println("MongoDB Connection Error : " + e.getMessage());
             }
             
-            System.out.println("Collected tweets :" + collection.getCount());
+            System.out.println("Collected tweets :" + collection2.getCount());
+            
         }
 
         @Override
