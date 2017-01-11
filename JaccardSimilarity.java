@@ -21,16 +21,23 @@ public class JaccardSimilarity {
         Set<String> union = new HashSet<String>();
         union.addAll(l1);
         union.addAll(l2);
+        
+        if (l1.isEmpty() || l2.isEmpty()) {
+            return 0;
+        }
+        if (l1.isEmpty() && l2.isEmpty()) {
+            return 1;
+        }
         for (String key : union) {
             if (l1.contains(key) && l2.contains(key)) {
                 inter++;
             }
         }
-        if(inter != 0)
-        return (float) (inter / union.size());
-        else
-            //normally when the are empty return 1 but for testing return 0
+        if (inter != 0) {
+            return (float) (inter / union.size());
+        } else {
             return 0;
+        }
     }
 
 }
