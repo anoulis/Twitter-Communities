@@ -171,14 +171,14 @@ public class SaveTweets {
                 savedCollection.remove(searchDocument);
             }
             savedCollection.insert(document);
-            // System.out.println(document);
+            
         }
 
         JaccardSimilarity js = new JaccardSimilarity();
-        List<Map<List<String>, List<Float>>> list = new ArrayList<Map< List<String>, List<Float>>>();//This is the final list you need
-        Map<List<String>, List<Float>> map1 = new HashMap<List<String>, List<Float>>();//This is one instance of the   map you want to store in the above map
-        List<String> usersNames = new ArrayList<String>();
-        List<Float> usersResults = new ArrayList<Float>();
+        List<Map<List<String>, List<Float>>> list = new ArrayList<>();//This is the final list you need
+        Map<List<String>, List<Float>> map1 = new HashMap<>();//This is one instance of the   map you want to store in the above map
+        List<String> usersNames = new ArrayList<>();
+        List<Float> usersResults = new ArrayList<>();
 
         BasicDBObject doc1;
         BasicDBObject doc2;
@@ -198,7 +198,7 @@ public class SaveTweets {
                 usersNames.add(allUsers.get(i));
                 usersNames.add(allUsers.get(j));
                 doc1 = new BasicDBObject("User", allUsers.get(i));
-                doc2 = new BasicDBObject("User", allUsers.get(i));
+                doc2 = new BasicDBObject("User", allUsers.get(j));
                 cursor1 = savedCollection.find(doc1);
                 cursor2 = savedCollection.find(doc2);
                 if (cursor1.hasNext() && cursor2.hasNext()) {
